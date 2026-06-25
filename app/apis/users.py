@@ -2,7 +2,7 @@ import os
 from datetime import datetime, timedelta
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status, Response, Cookie
+from fastapi import APIRouter, Depends, HTTPException, status, Response, Cookie, Header
 from pydantic import BaseModel, Field
 from sqlalchemy import select, or_
 from sqlalchemy.orm import Session
@@ -57,6 +57,30 @@ def create_refresh_token(data: dict) -> str:
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
+def get_current_user(authorization: str = Header(None), db: Session = Depends(get_db)):
+    """[NFR-USER-001] 현재 로그인한 사용자 인증 확인"""
+    if not authorization:
+        raise HTTPException(status_code=401, detail="인증 토큰이 필요합니다.")
+    
+    # "Bearer <token>" 형식에서 토큰만 추출
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="유효하지 않은 토큰 형식입니다.")
+    
+    token = authorization[7:]  # "Bearer " 제거
+    
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id: int = payload.get("user_id")
+        if user_id is None:
+            raise HTTPException(status_code=401, detail="유효하지 않은 토큰입니다.")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="토큰이 만료되었거나 유효하지 않습니다.")
+    
+    user = db.execute(select(User).where(User.id == user_id)).scalars().first()
+    if not user:
+        raise HTTPException(status_code=401, detail="사용자를 찾을 수 없습니다.")
+    
+    return user
 
 # ==========================================
 # 📋 Pydantic DTO 스키마 정의
@@ -126,7 +150,7 @@ def register_user(user_data: UserRegister, db: Session = Depends(get_db)):
         department=user_data.department,
         gender=user_data.gender,
         phone_number=user_data.phone_number,
-        role=RoleEnum.PENDING,  # 최초 가입 시 승인 대기자 상태
+        role=RoleEnum.STAFF,  # 최초 가입 시 승인 대기자 상태
         is_active=True
     )
     db.add(new_user)
@@ -237,21 +261,16 @@ def change_user_role(user_id: int, role_data: RoleUpdate, db: Session = Depends(
 
 
 @user_router.get("/me", response_model=UserResponse)
-def get_my_profile(db: Session = Depends(get_db)):
+def get_my_profile(current_user: User = Depends(get_current_user)):
     """[REQ-USER-006] 내 마이페이지 프로필 조회"""
-    dummy_user = db.execute(select(User)).scalars().first()
-    if not dummy_user:
-        raise HTTPException(status_code=404, detail="사용자 정보가 존재하지 않습니다.")
-    return dummy_user
+    return current_user
 
 
 @user_router.patch("/me", response_model=UserResponse)
-def update_my_profile(update_data: UserUpdate, db: Session = Depends(get_db)):
+def update_my_profile(update_data: UserUpdate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """[REQ-USER-007] 마이페이지 일부 정보(부서, 전화번호) 수정"""
-    user = db.execute(select(User)).scalars().first()
-    if not user:
-        raise HTTPException(status_code=404, detail="수정할 사용자 정보가 존재하지 않습니다.")
-
+    user = current_user  # 로그인한 사용자
+    
     if update_data.department is not None:
         user.department = update_data.department
     if update_data.phone_number is not None:
@@ -267,13 +286,12 @@ def update_my_profile(update_data: UserUpdate, db: Session = Depends(get_db)):
     return user
 
 
-@user_router.patch("/me/password")
-def change_my_password(pwd_data: PasswordUpdate, db: Session = Depends(get_db)):
-    """[REQ-USER-008] 기존 비밀번호 검증 후 비밀번호 변경"""
-    user = db.execute(select(User)).scalars().first()
-    if not user:
-        raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
 
+@user_router.patch("/me/password")
+def change_my_password(pwd_data: PasswordUpdate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """[REQ-USER-008] 기존 비밀번호 검증 후 비밀번호 변경"""
+    user = current_user
+    
     if not verify_password(pwd_data.current_password, user.hashed_password):
         raise HTTPException(status_code=400, detail="현재 사용 중인 비밀번호가 일치하지 않습니다.")
 
@@ -283,12 +301,8 @@ def change_my_password(pwd_data: PasswordUpdate, db: Session = Depends(get_db)):
 
 
 @user_router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
-def withdraw_my_account(db: Session = Depends(get_db)):
+def withdraw_my_account(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """[REQ-USER-009] 본인 회원 탈퇴 (CASCADE 삭제 보장)"""
-    user = db.execute(select(User)).scalars().first()
-    if not user:
-        raise HTTPException(status_code=404, detail="탈퇴할 회원 정보가 존재하지 않습니다.")
-
-    db.delete(user)
+    db.delete(current_user)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)

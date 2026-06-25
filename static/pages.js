@@ -1,5 +1,5 @@
 /**
- * 페이지 렌더링 및 이벤트 핸들러 모음
+ * Page Renderer & Event Handler Module
  */
 
 const pages = {
@@ -8,10 +8,10 @@ const pages = {
         if (state.currentPage !== '/' && state.currentPage !== '/home') return;
         const app = document.getElementById('app');
         app.innerHTML = html;
-        
+
         const actions = document.getElementById('home-actions');
         if (!state.user) {
-            actions.innerHTML = '<button onclick="navigate(\'/login\')">로그인하여 시작하기</button>';
+            actions.innerHTML = '<button onclick="navigate(\'/login\')">로그인하고 시작하기</button>';
         } else if (state.user.role === 'pending') {
             actions.innerHTML = '<p>관리자의 승인을 기다리는 중입니다.</p>';
         } else {
@@ -27,7 +27,7 @@ const pages = {
     async renderSignup() {
         const html = await utils.loadTemplate('signup');
         document.getElementById('app').innerHTML = html;
-        
+
         const phoneInput = document.getElementById('signup-phone');
         if (phoneInput) {
             phoneInput.addEventListener('input', (e) => utils.handlePhoneInput(e));
@@ -41,7 +41,7 @@ const pages = {
         const app = document.getElementById('app');
         app.innerHTML = html;
 
-        // 필드 값 복원
+        // 필터 값 복원
         const nameInput = document.getElementById('search-name');
         const genderSelect = document.getElementById('filter-gender');
         const minAgeInput = document.getElementById('filter-min-age');
@@ -51,10 +51,10 @@ const pages = {
         if (genderSelect && params.gender) genderSelect.value = params.gender;
         if (minAgeInput && params.min_age) minAgeInput.value = params.min_age;
         if (maxAgeInput && params.max_age) maxAgeInput.value = params.max_age;
-        
+
         const listBody = document.getElementById('patients-list');
         if (patients.length === 0) {
-            listBody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem;">검색 결과가 없습니다.</td></tr>';
+            listBody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem;">검색결과가 없습니다.</td></tr>';
             return;
         }
         listBody.innerHTML = patients.map(p => `
@@ -72,7 +72,7 @@ const pages = {
     async renderPatientCreate() {
         const html = await utils.loadTemplate('patient-create');
         document.getElementById('app').innerHTML = html;
-        
+
         const phoneInput = document.getElementById('phone_number');
         if (phoneInput) {
             phoneInput.addEventListener('input', (e) => utils.handlePhoneInput(e));
@@ -86,24 +86,24 @@ const pages = {
         if (!state.currentPage.startsWith('/patients/')) return;
         const app = document.getElementById('app');
         app.innerHTML = html;
-        
+
         // 환자 정보 표시
         document.getElementById('patient-name').innerText = `${patient.name} (${patient.gender === 'M' ? '남성' : '여성'})`;
         document.getElementById('patient-info').innerText = `나이: ${patient.age}세 | 연락처: ${utils.formatPhoneNumber(patient.phone)}`;
-        
+
         // 수정 폼 초기값 설정
         document.getElementById('update-name').value = patient.name;
         document.getElementById('update-phone').value = utils.formatPhoneNumber(patient.phone);
-        
+
         const updatePhoneInput = document.getElementById('update-phone');
         if (updatePhoneInput) {
             updatePhoneInput.addEventListener('input', (e) => utils.handlePhoneInput(e));
         }
-        
+
         // 버튼 이벤트 바인딩
         document.getElementById('add-record-btn').onclick = () => navigate(`/patients/${patientId}/medical-records/create`);
-        
-        // 상세 페이지 전용 상태 (ID 저장)
+
+        // 상세 페이지 사용 상태 (ID 저장)
         state.currentPatientId = patientId;
 
         const listBody = document.getElementById('records-list');
@@ -122,7 +122,7 @@ const pages = {
         const html = await utils.loadTemplate('record-create');
         const app = document.getElementById('app');
         app.innerHTML = html;
-        
+
         const imageInput = document.getElementById('xray_image');
         const previewContainer = document.getElementById('image-preview-container');
 
@@ -135,7 +135,7 @@ const pages = {
                 };
                 reader.readAsDataURL(file);
             } else {
-                previewContainer.innerHTML = '<p>이미지 미리보기가 여기에 표시됩니다.</p>';
+                previewContainer.innerHTML = '<p>사진 지 미리보기가 나기지않습니다</p>';
             }
         };
 
@@ -149,25 +149,25 @@ const pages = {
         const html = await utils.loadTemplate('record-detail');
         const app = document.getElementById('app');
         app.innerHTML = html;
-        
+
         document.getElementById('record-id').innerText = record.id;
         document.getElementById('chart-number').innerText = record.chart_number;
         document.getElementById('symptoms-text').innerText = record.symptoms;
         document.getElementById('created-at').innerText = new Date(record.created_at).toLocaleString();
         document.getElementById('xray-img').src = record.xray_image_url;
-        
+
         document.getElementById('predict-btn').onclick = () => this.handlePredict(recordId);
         document.getElementById('back-to-patient-btn').onclick = () => navigate(`/patients/${record.patient_id}`);
-        
+
         const analysisList = document.getElementById('analysis-list');
         if (analyses.length === 0) {
-            analysisList.innerHTML = '<p>저장된 예측 결과가 없습니다.</p>';
+            analysisList.innerHTML = '<p>분석된 예측 결과가 없습니다.</p>';
         } else {
             analysisList.innerHTML = `
                 <table>
                     <thead>
                         <tr>
-                            <th>수행 일시</th>
+                            <th>실행 시시</th>
                             <th>폐렴 여부</th>
                             <th>Confidence</th>
                             <th>사용 모델</th>
@@ -201,10 +201,10 @@ const pages = {
         document.getElementById('me-phone-display').innerText = utils.formatPhoneNumber(state.user.phone_number);
         document.getElementById('me-role-display').innerText = state.user.role;
 
-        // 수정 폼 초기값 설정
+        // 수정 폼 초기값설정
         document.getElementById('update-me-department').value = state.user.department;
         document.getElementById('update-me-phone').value = utils.formatPhoneNumber(state.user.phone_number);
-        
+
         const mePhoneInput = document.getElementById('update-me-phone');
         if (mePhoneInput) {
             mePhoneInput.addEventListener('input', (e) => utils.handlePhoneInput(e));
@@ -223,7 +223,7 @@ const pages = {
         const app = document.getElementById('app');
         app.innerHTML = html;
 
-        // 필드 값 복원
+        // 필터 값 복원
         const queryInput = document.getElementById('admin-search-query');
         const deptSelect = document.getElementById('admin-filter-dept');
         if (queryInput && params.query) queryInput.value = params.query;
@@ -231,7 +231,7 @@ const pages = {
 
         const listBody = document.getElementById('admin-users-list');
         if (users.length === 0) {
-            listBody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem;">검색 결과가 없습니다.</td></tr>';
+            listBody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem;">검색결과가 없습니다.</td></tr>';
             return;
         }
         listBody.innerHTML = users.map(u => `
@@ -244,7 +244,7 @@ const pages = {
                 <td>
                     <select onchange="pages.handleRoleUpdate(${u.id}, this.value)" ${u.id === state.user.id ? 'disabled' : ''}>
                         <option value="pending" ${u.role === 'pending' ? 'selected' : ''}>승인대기</option>
-                        <option value="staff" ${u.role === 'staff' ? 'selected' : ''}>일반회원</option>
+                        <option value="staff" ${u.role === 'staff' ? 'selected' : ''}>일반직원</option>
                         <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>관리자</option>
                     </select>
                 </td>
@@ -258,11 +258,11 @@ const pages = {
     handleAdminSearch() {
         const query = document.getElementById('admin-search-query').value;
         const department = document.getElementById('admin-filter-dept').value;
-        
+
         const params = new URLSearchParams();
         if (query) params.set('query', query);
         if (department) params.set('department', department);
-        
+
         const queryString = params.toString();
         const path = '/admin/users' + (queryString ? '?' + queryString : '');
         navigate(path);
@@ -291,12 +291,12 @@ const pages = {
 
         try {
             await apis.updateMe(data);
-            utils.showAlert('회원 정보가 수정되었습니다.', 'success');
+            utils.showAlert('직원 정보가 수정되었습니다.', 'success');
             await checkAuth(); // state 갱신 (app.js)
             this.renderMyPage();
         } catch (err) {
             let msg = err.message;
-            if (err.status === 500) msg = '잠시 후 다시시도해주세요.';
+            if (err.status === 500) msg = '다시 시도해도록주세요.';
             utils.showAlert(msg, 'error', '수정 실패');
         }
     },
@@ -315,16 +315,16 @@ const pages = {
         } catch (err) {
             let msg = err.message;
             if (err.status === 400) {
-                msg = '비밀번호는 "대소문자, 특수문자, 숫자를 각 1개씩 포함한 8자리 이상이어야 합니다."';
+                msg = '비밀번호는 "특수문자, 소문자, 숫자를 각 1개씩 포함한 8자리 이상이어야합니다"';
             } else if (err.status === 500) {
-                msg = '잠시 후 다시시도해주세요.';
+                msg = '다시 시도해도록주세요.';
             }
             utils.showAlert(msg, 'error', '비밀번호 변경 실패');
         }
     },
 
     async handleDeleteMe() {
-        if (!confirm('정말로 탈퇴하시겠습니까? 모든 데이터가 삭제됩니다.')) return;
+        if (!confirm('정말로 탈퇴하시겠습니까? 모든 데이터가 삭제됩니다')) return;
 
         try {
             await apis.deleteMe();
@@ -355,27 +355,31 @@ const pages = {
 
         try {
             await apis.signup(userData);
-            utils.showAlert('회원가입이 완료되었습니다. 로그인해주세요.', 'success');
+            utils.showAlert('가입완료되었습니다 로그인해주세요', 'success');
             navigate('/login');
         } catch (err) {
             let msg = err.message;
             if (err.status === 400 && (msg.includes('비밀번호') || msg.includes('password'))) {
-                msg = '비밀번호는 "대소문자, 특수문자, 숫자를 각 1개씩 포함한 8자리 이상이어야 합니다."';
+                msg = '비밀번호는 "특수문자, 소문자, 숫자를 각 1개씩 포함한 8자리 이상이어야합니다"';
             }
-            if (err.status === 500) msg = '잠시 후 다시시도해주세요.';
-            utils.showAlert(msg, 'error', '가입 실패');
+            if (err.status === 500) msg = '다시 시도해도록주세요.';
+            utils.showAlert(msg, 'error', '가입실패');
         }
     },
 
     async handlePatientCreate(e) {
         e.preventDefault();
+        const genderMap = { "male": "M", "female": "F" };
+        const selectedGender = document.getElementById('gender').value;
+        const mappedGender = genderMap[selectedGender];
+
         const patientData = {
             name: document.getElementById('name').value,
             age: parseInt(document.getElementById('age').value),
-            gender: document.getElementById('gender').value,
+            gender: mappedGender,
             phone: document.getElementById('phone_number').value.replace(/[^\d]/g, '')
         };
-        
+
         try {
             await apis.createPatient(patientData);
             utils.showAlert('환자가 등록되었습니다.', 'success');
@@ -436,7 +440,7 @@ const pages = {
         const patientId = state.currentPatientId;
         const updateData = {
             name: document.getElementById('update-name').value,
-            phone_number: document.getElementById('update-phone').value.replace(/[^\d]/g, '')
+            phone: document.getElementById('update-phone').value.replace(/[^\d]/g, '')
         };
 
         try {
@@ -479,3 +483,4 @@ const pages = {
         }
     }
 };
+
